@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pysnmp.asyncio import snmpwalk
-from pysnmp.error import PySnmpError
+import aiosnmp
 import asyncio
 import os
 
@@ -22,34 +21,31 @@ STATUS_MAP = {
 async def get_ont_status(olt_ip: str, community_string: str):
     """
     Menjalankan snmpwalk ke OLT untuk mendapatkan status semua ONT.
-    Menggunakan API pysnmp.asyncio.snmpwalk yang modern dan stabil.
+    Menggunakan pustaka aiosnmp yang modern dan andal.
     """
     ont_data = []
     try:
-        # snmpwalk adalah generator asynchronous tingkat tinggi yang menyederhanakan proses.
-        async for varBind in snmpwalk(community_string, olt_ip, 161, ONT_STATUS_OID):
-            oid, value = varBind
-            oid = str(oid)
-            value = int(value)
+        async with aiosnmp.Snmp(host=olt_ip, port=161, community=community_string, timeout=5) as snmp:
+            async for varbind in await snmp.walk(ONT_STATUS_OID):
+                oid, value = varbind
+                oid = str(oid)
+                value = int(value)
 
-            # Ambil bagian terakhir dari OID sebagai ont_index
-            ont_index = oid.split(f"{ONT_STATUS_OID}.")[1]
-            
-            # Terjemahkan status code ke teks
-            status_text = STATUS_MAP.get(value, "unknown")
+                # Ambil bagian terakhir dari OID sebagai ont_index
+                ont_index = oid.split(f"{ONT_STATUS_OID}.")[1]
+                
+                # Terjemahkan status code ke teks
+                status_text = STATUS_MAP.get(value, "unknown")
 
-            ont_data.append({
-                "ont_index": ont_index,
-                "status_code": value,
-                "status_text": status_text
-            })
+                ont_data.append({
+                    "ont_index": ont_index,
+                    "status_code": value,
+                    "status_text": status_text
+                })
 
-    except PySnmpError as e:
-        # Menangani error spesifik dari SNMP (misal: timeout, host tidak ditemukan)
-        raise HTTPException(status_code=504, detail=f"SNMP Error: {e}")
     except Exception as e:
-        # Menangani error tak terduga lainnya (misal: saat parsing)
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
+        # Menangani semua jenis error dari aiosnmp (misal: timeout, host tidak ditemukan)
+        raise HTTPException(status_code=504, detail=f"SNMP Error: {e}")
 
     return ont_data
 

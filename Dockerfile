@@ -11,6 +11,9 @@ COPY requirements.txt requirements.txt
 # --no-cache-dir digunakan agar image lebih kecil
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Perintah ini untuk debugging: mencetak semua paket yang terinstall
+RUN pip freeze
+
 # 5. Salin semua file kode aplikasi
 COPY . .
 
