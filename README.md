@@ -111,14 +111,25 @@ Mengambil daftar semua ONT beserta statusnya dari OLT tertentu.
 
 - **Method:** `GET`
 - **URL:** `/olt/{olt_ip}/onts/status`
-- **Parameter URL:**
+
+#### Parameters
+
+- **Path Parameter:**
   - `olt_ip` (string, **required**): Alamat IP dari perangkat OLT ZTE yang akan di-query.
+- **Query Parameter:**
+  - `community` (string, *optional*): Community string SNMP yang ingin digunakan untuk request ini. Jika tidak diisi, akan menggunakan nilai default yang diatur di server.
 
 #### Contoh Penggunaan (cURL)
 
-```bash
-curl -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/status"
-```
+- **Tanpa community string (menggunakan default server):**
+  ```bash
+  curl -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/status"
+  ```
+
+- **Dengan community string spesifik:**
+  ```bash
+  curl -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/status?community=komunitas_lain"
+  ```
 
 #### Contoh Respons Sukses (`200 OK`)
 

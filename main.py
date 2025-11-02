@@ -18,7 +18,7 @@ STATUS_MAP = {
 }
 
 # --- Fungsi Helper ---
-async def get_ont_status(olt_ip: str):
+async def get_ont_status(olt_ip: str, community_string: str):
     """
     Menjalankan snmpwalk ke OLT untuk mendapatkan status semua ONT.
     Menggunakan pysnmp asynchronous untuk performa tinggi.
@@ -36,7 +36,7 @@ async def get_ont_status(olt_ip: str):
                      errorStatus,
                      errorIndex,
                      varBinds) in nextCmd(snmpEngine,
-                                          CommunityData(SNMP_COMMUNITY, mpModel=0),
+                                          CommunityData(community_string, mpModel=0),
                                           UdpTransportTarget((olt_ip, 161), timeout=1.0, retries=5),
                                           ContextData(),
                                           ObjectType(ObjectIdentity(ONT_STATUS_OID)),
@@ -87,11 +87,19 @@ async def get_ont_status(olt_ip: str):
 
 # --- Endpoint API ---
 @app.get("/olt/{olt_ip}/onts/status")
-async def get_onts_status_endpoint(olt_ip: str):
+async def get_onts_status_endpoint(olt_ip: str, community: str | None = None):
     """
     Endpoint untuk mendapatkan status semua ONT dari sebuah OLT ZTE.
+
+    Anda bisa menyediakan community string spesifik via query parameter `?community=...`
+    Jika tidak disediakan, nilai default akan digunakan (dari env var `SNMP_COMMUNITY_STRING`).
     """
-    ont_statuses = await get_ont_status(olt_ip)
+    # Tentukan community string yang akan digunakan:
+    # 1. Dari query parameter `community`, jika ada.
+    # 2. Jika tidak, dari environment variable `SNMP_COMMUNITY`.
+    community_to_use = community if community else SNMP_COMMUNITY
+
+    ont_statuses = await get_ont_status(olt_ip, community_to_use)
     
     return {
         "olt_ip": olt_ip,
