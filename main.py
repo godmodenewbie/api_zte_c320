@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from pysnmp.hlapi.asyncio import *
+from pysnmp.asyncio import snmpwalk
+from pysnmp.error import PySnmpError
 import asyncio
 import os
 
@@ -21,65 +22,36 @@ STATUS_MAP = {
 async def get_ont_status(olt_ip: str, community_string: str):
     """
     Menjalankan snmpwalk ke OLT untuk mendapatkan status semua ONT.
-    Menggunakan pysnmp asynchronous untuk performa tinggi.
+    Menggunakan API pysnmp.asyncio.snmpwalk yang modern dan stabil.
     """
     ont_data = []
-    
-    # Inisialisasi SNMP Engine. Ini adalah objek utama untuk semua operasi SNMP.
-    snmpEngine = SnmpEngine()
-
-    # Melakukan snmpwalk secara asynchronous.
-    # nextCmd adalah fungsi low-level yang setara dengan 'walk'.
-    # Kita iterasi (await for) hasilnya satu per satu saat diterima dari network.
     try:
-        async for (errorIndication,
-                     errorStatus,
-                     errorIndex,
-                     varBinds) in next_cmd(snmpEngine,
-                                          CommunityData(community_string, mpModel=0),
-                                          UdpTransportTarget((olt_ip, 161)),
-                                          ContextData(),
-                                          ObjectType(ObjectIdentity(ONT_STATUS_OID)),
-                                          lexicographicMode=False):
+        # snmpwalk adalah generator asynchronous tingkat tinggi yang menyederhanakan proses.
+        async for varBind in snmpwalk(community_string, olt_ip, 161, ONT_STATUS_OID):
+            oid, value = varBind
+            oid = str(oid)
+            value = int(value)
 
-            # --- Penanganan Error SNMP ---
-            if errorIndication:
-                # Error pada transport layer (misal: host tidak terjangkau)
-                raise HTTPException(status_code=504, detail=f"SNMP request failed: {errorIndication}")
-            elif errorStatus:
-                # Error pada level PDU SNMP (misal: noSuchName)
-                # Pesan error ini biasanya cukup teknis.
-                raise HTTPException(status_code=500, detail=f"SNMP error: {errorStatus.prettyPrint()} at {errorIndex and varBinds[int(errorIndex) - 1][0] or '?'}")
+            # Ambil bagian terakhir dari OID sebagai ont_index
+            ont_index = oid.split(f"{ONT_STATUS_OID}.")[1]
+            
+            # Terjemahkan status code ke teks
+            status_text = STATUS_MAP.get(value, "unknown")
 
-            # --- Parsing Hasil ---
-            # varBinds adalah list of tuple, biasanya berisi satu tuple untuk walk
-            for varBind in varBinds:
-                # varBind[0] adalah OID, varBind[1] adalah value
-                oid = str(varBind[0])
-                value = int(varBind[1])
+            ont_data.append({
+                "ont_index": ont_index,
+                "status_code": value,
+                "status_text": status_text
+            })
 
-                # Ambil bagian terakhir dari OID sebagai ont_index
-                # Contoh OID: .1.3.6.1.4.1.3902.1012.3.28.2.1.4.10101001
-                # Kita split berdasarkan OID awal untuk mendapatkan index-nya.
-                ont_index = oid.split(f"{ONT_STATUS_OID}.")[1]
-                
-                # Terjemahkan status code ke teks
-                status_text = STATUS_MAP.get(value, "unknown")
-
-                ont_data.append({
-                    "ont_index": ont_index,
-                    "status_code": value,
-                    "status_text": status_text
-                })
-
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=504, detail="SNMP request timed out.")
+    except PySnmpError as e:
+        # Menangani error spesifik dari SNMP (misal: timeout, host tidak ditemukan)
+        raise HTTPException(status_code=504, detail=f"SNMP Error: {e}")
     except Exception as e:
-        # Menangkap error lain yang mungkin terjadi
+        # Menangani error tak terduga lainnya (misal: saat parsing)
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
-    finally:
-        # Pastikan transport ditutup setelah selesai atau jika terjadi error
-        snmpEngine.transportDispatcher.closeDispatcher()
+
+    return ont_data
 
 
     return ont_data
