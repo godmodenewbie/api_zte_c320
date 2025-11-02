@@ -37,7 +37,7 @@ async def get_ont_status(olt_ip: str, community_string: str):
                      errorIndex,
                      varBinds) in next_cmd(snmpEngine,
                                           CommunityData(community_string, mpModel=0),
-                                          UdpTransportTarget((olt_ip, 161), timeout=1.0, retries=5),
+                                          UdpTransportTarget((olt_ip, 161)),
                                           ContextData(),
                                           ObjectType(ObjectIdentity(ONT_STATUS_OID)),
                                           lexicographicMode=False):
