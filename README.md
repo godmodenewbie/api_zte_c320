@@ -131,6 +131,140 @@ Mengambil daftar semua ONT beserta statusnya dari OLT tertentu.
   curl -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/status?community=komunitas_lain"
   ```
 
+### Get Single ONT Status
+
+Mengambil status dari satu ONT spesifik berdasarkan `ont_index` SNMP-nya.
+
+- **Method:** `GET`
+- **URL:** `/olt/{olt_ip}/ont/{ont_index}/status`
+
+#### Parameters
+
+- **Path Parameters:**
+  - `olt_ip` (string, **required**): Alamat IP dari perangkat OLT.
+  - `ont_index` (string, **required**): SNMP index dari ONT yang ingin dicek (contoh: `10101001`).
+- **Query Parameter:**
+  - `community` (string, *optional*): Community string SNMP yang ingin digunakan.
+
+#### Contoh Penggunaan (cURL)
+
+```bash
+cURL -X GET "http://127.0.0.1:8000/olt/192.168.100.1/ont/10101001/status?community=jinomro"
+```
+
+#### Contoh Respons Sukses (`200 OK`)
+
+```json
+{
+  "olt_ip": "192.168.100.1",
+  "ont_index": "10101001",
+  "status_code": 5,
+  "status_text": "working"
+}
+```
+
+### Get ONT Status by Description
+
+Mengambil status dari satu ONT spesifik dengan cara mencarinya berdasarkan **Deskripsi** (format CLI Telnet).
+
+**Catatan Penting:** Endpoint ini akan lebih lambat dibandingkan pencarian via `ont_index`, karena ia harus melakukan SNMP Walk ke semua ONT untuk menemukan Deskripsi yang cocok terlebih dahulu.
+
+- **Method:** `GET`
+- **URL:** `/olt/{olt_ip}/onts/by-description/{description}`
+
+#### Parameters
+
+- **Path Parameters:**
+  - `olt_ip` (string, **required**): Alamat IP dari perangkat OLT.
+  - `description` (string, **required**): Deskripsi dari ONT yang ingin dicari (contoh: `gpon-onu_1/2/3:1`).
+- **Query Parameter:**
+  - `community` (string, *optional*): Community string SNMP yang ingin digunakan.
+
+#### Contoh Penggunaan (cURL)
+
+```bash
+cURL -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/by-description/gpon-onu_1/2/3:1/status?community=jinomro"
+```
+
+#### Contoh Respons Sukses (`200 OK`)
+
+```json
+{
+  "olt_ip": "192.168.100.1",
+  "ont_index": "10101001",
+  "status_code": 5,
+  "status_text": "working"
+}
+```
+
+### Get ONT Status by Name
+
+Mengambil status dari satu ONT spesifik dengan cara mencarinya berdasarkan **Nama ONT**.
+
+**Catatan Penting:** Endpoint ini juga akan lebih lambat karena memerlukan proses SNMP Walk.
+
+- **Method:** `GET`
+- **URL:** `/olt/{olt_ip}/onts/by-name/{ont_name}/status`
+
+#### Parameters
+
+- **Path Parameters:**
+  - `olt_ip` (string, **required**): Alamat IP dari perangkat OLT.
+  - `ont_name` (string, **required**): Nama dari ONT yang ingin dicari.
+- **Query Parameter:**
+  - `community` (string, *optional*): Community string SNMP yang ingin digunakan.
+
+#### Contoh Penggunaan (cURL)
+
+```bash
+cURL -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/by-name/NAMA_ONT_ANDA/status?community=jinomro"
+```
+
+#### Contoh Respons Sukses (`200 OK`)
+
+```json
+{
+  "olt_ip": "192.168.100.1",
+  "ont_index": "10101003",
+  "status_code": 6,
+  "status_text": "LOS"
+}
+```
+
+### Get ONT Status by Serial Number (Hex)
+
+Mengambil status dari satu ONT spesifik dengan cara mencarinya berdasarkan **Serial Number** dalam format Heksadesimal.
+
+**Catatan Penting:** Endpoint ini juga akan lebih lambat karena memerlukan proses SNMP Walk.
+
+- **Method:** `GET`
+- **URL:** `/olt/{olt_ip}/onts/by-serial/{serial_number}/status`
+
+#### Parameters
+
+- **Path Parameters:**
+  - `olt_ip` (string, **required**): Alamat IP dari perangkat OLT.
+  - `serial_number` (string, **required**): Serial Number dari ONT dalam format Heksadesimal dan huruf besar (contoh: `FHTTA6798EFB`).
+- **Query Parameter:**
+  - `community` (string, *optional*): Community string SNMP yang ingin digunakan.
+
+#### Contoh Penggunaan (cURL)
+
+```bash
+cURL -X GET "http://127.0.0.1:8000/olt/192.168.100.1/onts/by-serial/FHTTA6798EFB/status?community=jinomro"
+```
+
+#### Contoh Respons Sukses (`200 OK`)
+
+```json
+{
+  "olt_ip": "192.168.100.1",
+  "ont_index": "10101002",
+  "status_code": 5,
+  "status_text": "working"
+}
+```
+
 #### Contoh Respons Sukses (`200 OK`)
 
 Respon akan berisi alamat IP OLT dan sebuah array `data` yang berisi daftar ONT.
